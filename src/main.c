@@ -9,9 +9,9 @@
 
 // 실행할 파일들의 경로
 char *process_paths[NUM_PROCESSES] = {
-	{"./watchdog"},
-	{"./controller"},
-	{"./sensor_sim"}
+	"./watchdog",
+	"./controller",
+	"./sensor_sim"
 };
 
 // execv에 전달할 인자 목록 (argv[0]은 프로그램의 이름이어야 함)
@@ -20,9 +20,9 @@ char *controller_argv[] = {"controller", NULL};
 char *sensor_sim_argv[] = {"sensor_sim", NULL};
 
 char *argv_lists[] = {
-	watchdog_argv,
-	controller_argv,
-	sensor_sim_argv
+	(char*)watchdog_argv,
+	(char*)controller_argv,
+	(char*)sensor_sim_argv
 };
 
 // process를 fork하고 execv 로 실행하는 함수
@@ -52,7 +52,7 @@ int main() {
 	
 	//2. 프로세스 실행 Watchdog -> Controller -> Sensor 순서로 실행이 되야함
 	for (int i = 0; i < NUM_PROCESSES; i++) {
-		pids[i] = run_process(process_paths[i], argv_lists[i]);
+		pids[i] = run_process(process_paths[i], (char**)argv_lists[i]);
 		if(pids[i] < 0) {
  			perror("process error");
 			return 1;
@@ -76,6 +76,6 @@ int main() {
 		}
 	}
 
-	printf("--- Syystem Shutdown Complete ---\n");
+	printf("--- System Shutdown Complete ---\n");
 	return 0;
 }

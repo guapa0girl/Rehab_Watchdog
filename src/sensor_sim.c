@@ -47,8 +47,7 @@ int main() {
    * 1. 공유 메모리 생성 (IPC_CREAT 포함)
    * Sensor가 최초 생성자(Producer 역할)
    * ----------------------------------------*/
-  int shmid =
-      shmget(SHM_KEY_SENSOR, sizeof(sensor_shm_data_t), 0666 | IPC_CREAT);
+  int shmid = shmget(SHM_KEY_SENSOR, sizeof(sensor_shm_data_t), 0666);
   if (shmid < 0) {
     perror("[Sensor] shmget");
     exit(1);
@@ -69,7 +68,7 @@ int main() {
    * Sensor가 initialize (값 = 1)
    * Controller는 생성된 세마포어를 사용
    * ----------------------------------------*/
-  int semid = semget(SEM_KEY_SYNC, 1, 0666 | IPC_CREAT);
+  int semid = semget(SEM_KEY_SYNC, 1, 0666);
   if (semid < 0) {
     perror("[Sensor] semget");
     exit(1);

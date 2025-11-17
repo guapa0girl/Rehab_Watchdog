@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <sys/sem.h>
 #include "ipc_config.h"
 
 #define NUM_PROCESSES 3

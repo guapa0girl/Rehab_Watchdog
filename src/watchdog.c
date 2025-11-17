@@ -36,6 +36,7 @@
 
 time_t last_hb_time; // heartBeat주기를 알기 위한 heartBeat가 마지막으로 온 시간
 pid_t controller_pid; // controller의 pid
+char watchdog_pid_str[16]; // pid 문자열을 저장할 버퍼 선언
 
 void heartBeatHandler(int sig); 
 // heartBeat가 왔는지 안왔는지 갱신해주고, last_hb_time를 갱신하는 함수 
@@ -46,16 +47,17 @@ void performRecovery(void);
 // controller를 강제 종료하고, 정리, 새 프로세스 시작, 프로그램 시작 수행 함수
 
 int main() {
-	printf("--- Watchdog process started ---");
+	printf("--- Watchdog process started ---"); 
 	setupSignalHandler();
+	last_hb_time = time(NULL);
 	unsigned int sleepTime;
 	for(;;) {
 		// cpu부담을 줄이기 위한 sleep, TIMEOUT보다 작아야 한다
-		if((sleepTime = sleep(2)) < 2) perror("sleep interupt error");
+		if((sleepTime = sleep(2)) < 2) perror("sleep interupt error -- Watchdog");
 		// 시그널이 온 시간이 timeout보다 작을때, 즉 오류가 생겼다고 판단될 시
 		// performRecovery를 실행
 		if(time(NULL) - last_hb_time > TIMEOUT) performRecovery();
-	}
+	} 
 }
 
 void heartBeatHandler(int sig) {
@@ -70,9 +72,35 @@ void setupSignalHandler(void) {
 	sigemptyset(&act.sa_mask);
 	act.sa_flags = 0;
 	//sigaction 호출
-	if((sigaction(SIGUSR1, &act, NULL)) < 0) perror("sigaction error");
+	if((sigaction(SIGUSR1, &act, NULL)) < 0) perror("sigaction error -- Watchdog");
 }
 
 void performRecovery(void) {
+	pid_t newControllerPid;
+	pid_t currentWatchdogPid;
+	currentWatchdogPid = getpid();
+	sprintf(watchdog_pid_str, "%d", currentWatchdogPid);
 
+	char *const argv[] = {
+		(char *)"./controller",
+		(char *)watchdog_pid_str,
+		(char *)NULL
+	};
+
+	// controller 종료
+	if((kill(controller_pid, SIGKILL) < 0)) perror("kill error -- Watchdog");
+	// 종료되어서 중지 상태가 된 자식(controller)을 회수 후 반환.
+	if((waitpid(controller_pid, NULL, 0)) < 0) perror("waitpid error -- Watchdog");
+	
+	// controller 프로세스 재시작
+	if((newControllerPid = fork()) < 0) {
+		perror("fork error -- Watchdog");
+	} else if (newControllerPid == 0) {
+		execv("./controller", argv);
+
+		perror("execv failed -- Watchdog");
+		exit(EXIT_FAILURE);
+	} else {
+		controller_pid = newControllerPid;
+	}
 }
